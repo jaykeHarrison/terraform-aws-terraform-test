@@ -17,7 +17,7 @@ resource "aws_iam_role" "lambda" {
 }
 
 resource "aws_iam_policy" "lambda_s3" {
-  name        = "lambda_s3_policy"
+  name        = "${var.prefix}-lambda_s3_policy"
   description = "IAM policy for Lambda to perform S3 operations"
 
   policy = jsonencode({
