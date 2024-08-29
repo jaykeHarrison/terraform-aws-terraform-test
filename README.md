@@ -10,7 +10,7 @@ First thing we need to do is deploy our 2 applications which are both using our 
 FirsTo deploy Application A, we need to init Terraform and run an apply.
 
 ```bash
-cd ~/project_a && terraform init
+cd ~/tf-test-playground/project_a && terraform init
 ```
 
 Then apply the Terraform configuration:
@@ -28,7 +28,7 @@ http://[panda_name]-project-a.devopsplayground.org.s3-website-eu-west-2.amazonaw
 FirsTo deploy Application A, we need to init Terraform and run an apply.
 
 ```bash
-cd ~/project_b && terraform init
+cd ~/tf-test-playground/project_b && terraform init
 ```
 
 Then apply the Terraform configuration:
@@ -69,7 +69,7 @@ variable "error_html_path" {
 
 The new feature is now available to use for Project A. Create a new file in Project A's html directory
 ```bash
-touch ~/project_a/html/error.html
+touch ~/tf-test-playground/project_a/html/error.html
 ```
 Add the following html to the new **project_a/html/error.html** file
 ```html
@@ -85,14 +85,14 @@ Add the following html to the new **project_a/html/error.html** file
 ```
 We can now apply the changes to our module for Project A
 ```bash
-cd ~/project_a && terraform apply --auto-approve
+cd ~/tf-test-playground/project_a && terraform apply --auto-approve
 ```
 
 We can see that our changes have applied successfully. If you navigate to the link in the output you will see the index.html page. Add a page that doesn't exist to the end of the url and this should show us our new error page.
 
 Project B doesn't want to implement this feature and to keep using the module as they currently are. Let's run a plan to check there are no changes.
 ```bash
-cd ~/project_b && terraform plan
+cd ~/tf-test-playground/project_b && terraform plan
 ```
 
 Our plan has returned an error! This is because our new feature hasn't been created to be optional. Let's fix that but first, we'll set up Terraform Test and write our tests
@@ -100,11 +100,11 @@ Our plan has returned an error! This is because our new feature hasn't been crea
 ## 2.2 Terraform Test
 When we run **terraform test**, it will look for test files within the root directory or, if it exists, within the **tests** directory. We will create a **tests** directory and our first test file
 ```bash
-mkdir ~/module/tests && touch ~module/tests/website.tftest.hcl
+mkdir ~/tf-test-playground/module/tests && touch ~module/tests/website.tftest.hcl
 ```
 One of the things we can do with Terraform Test is create supporting resources to satisfy the dependancies of our modules. Let's create a **setup** directory to put our supporting Terraform resources in.
 ```bash
-mkdir ~/module/tests/setup && touch ~/module/tests/setup/main.tf
+mkdir ~/tf-test-playground/module/tests/setup && touch ~/module/tests/setup/main.tf
 ```
 Then add the following terraform code to **module/tests/setup/main.tf**
 ```hcl
@@ -127,7 +127,7 @@ output "random_prefix" {
 ```
 Then we need to add index.html and error.html files for our module to use during the tests.
 ```bash
-mkdir ~/module/tests/setup && touch ~/module/tests/html/index.html && touch ~/module/tests/html/error.html
+mkdir ~tf-test-playground/module/tests/setup && touch ~/tf-test-playground/module/tests/html/index.html && touch ~/tf-test-playground/module/tests/html/error.html
 ```
 Add the following to index.html:
 ```html
@@ -191,10 +191,10 @@ Terraform test files are executed sequentially. So we start with our setup run b
 Lastly, we have the create_bucket run block. This starts by defining additional variables followed by 2 assert blocks that tests the logic of our Terraform deployment. The first assert block checks that the bucket name is what we expect based on the variables we provided. If this returns false, the test will fail and the error message "Invalid bucket name" is returned. The 2nd assert block checks that the index.html file that we uploaded exists and is the same content as what is in s3.
 
 ```bash
-cd ~/module && terraform init && terraform test
+cd ~/tf-test-playground/module && terraform init && terraform test
 ```
 You should then see the following output in your terminal
-```
+```bash
 tests/website.tftest.hcl... in progress
   run "setup_tests"... pass
   run "create_s3_website"... fail
@@ -211,7 +211,7 @@ tests/website.tftest.hcl... tearing down
 tests/website.tftest.hcl... fail
 ```
 Let's fix our module and then run the tests again. First we need to give a default value to our variable to make it optional
-```
+```hcl
 variable "error_html_path" {
   description = "Path to the custom error document file to upload (e.g., 404.html)."
   type        = string
@@ -219,7 +219,7 @@ variable "error_html_path" {
 }
 ```
 Then we need to update our s3 object resource to conditionally create depending on if a value is provided for error_html_path
-```
+```hcl
 resource "aws_s3_object" "error" {
   count = var.error_html_path == null ? 0 : 1
   
@@ -231,7 +231,7 @@ resource "aws_s3_object" "error" {
 ```
 Now rerun our tests and they should pass
 ```bash
-cd ~/module && terraform test
+cd ~/tf-test-playground/module && terraform test
 ```
 # 3. CloudFront HTTPS Website
 Project B would like the module to allow them to secure their website hosted on S3 using HTTPS.
@@ -241,7 +241,7 @@ To achieve this, we can use CloudFront (this was covered in our May 2024 DevOps 
 ## 3.1a ACM
 First start by creating a new acm.tf file in the module for our acm resources
 ```bash
-touch ~/module/acm.tf
+touch ~/tf-test-playground/module/acm.tf
 ```
 Firstly, let's create a new variable that we can use to help conditionally create our new feature so we can avoid the same issue we faced when adding the error page to our S3 bucket. Add the following to module/variables.tf
 ```hcl
@@ -306,13 +306,13 @@ run "create_acm_certificate" {
 
 Now run Terraform Test again and these should pass
 ```bash
-cd ~/module && terraform test
+cd ~/tf-test-playground/module && terraform test
 ```
 
 ## 3.2a CloudFront
 
 ```bash
-touch ~/module/cloudfront.tf
+touch ~/tf-test-playground/module/cloudfront.tf
 ```
 
 ```hcl
@@ -408,6 +408,58 @@ You can test deploying this module to a HCP Terraform registry. We will use the 
 
 Requirements:
 - HCP Account
+    - signup: https://developer.hashicorp.com/sign-up
+    - login: https://portal.cloud.hashicorp.com/sign-in
+- AWS Account (if not following along with lab)
 
 Optional:
 - Github Account
+
+## 4.1 Create Module in HCP Terraform
+Sign in to HCP then go to Terraform Cloud: app.terraform.io/app
+
+Select your organisation or create one if it doesn't exist
+
+Using the left-hand menu, select **Registry**
+
+Then click the button **Publish** > **Module**
+
+Select the **Github** provider, then input in the box ```terraform-aws-devopsplayground-august-2024```
+
+On the **Add Module** screen, choose **Branch** for the module publish type and provide the following values:
+- Module Publish Type: Branch
+- Branch Name: "HCP"
+- Module Version: "1.0.0"
+
+Check **Enable testing for Module**, then click **Publish module**
+
+
+## 4.2 Configure Testing
+We now need to add environment variables for our module testing. If you are following along with live with our lab, you can get these details from the terminal. Run the following to get the details:
+
+```bash
+echo $AWS_ACCESS_KEY_ID && echo $AWS_SECRET_ACCESS_KEY
+```
+
+To configure environment variables on HCP for the tests, click **Configure Tests** on the module's page.
+
+Go to **Module variables**, and click the **+ Add variable** button and add each of the following environment variables:
+
+|Key|Value|Sensitive|
+|---|-----|---------|
+|AWS_ACCESS_KEY_ID|Your AWS IAM Key ID|True|
+|AWS_SECRET_ACCESS_KEY|Your AWS IAM Key Secret|True|
+|AWS_REGION|us-east-1|False|
+
+## 4.3 Run test from CLI
+Now let's run the tests in HCP Terraform Cloud by triggering them from our terminal. First we need to change branch
+
+```bash
+cd ~/tf-test-playground && git checkout HCP
+```
+
+Now we can run our tests. You will need to make a note of your Terraform Cloud organisation name and replace <org-name> in the following command
+
+```bash
+terraform test -cloud-run=app.terraform.io/<org-name>/devopsplayground-august-2024/aws
+```
