@@ -23,3 +23,10 @@ resource "aws_route53_record" "this" {
   records = [tolist(aws_acm_certificate.this[0].domain_validation_options)[0].resource_record_value]
   ttl     = 60
 }
+
+resource "aws_acm_certificate_validation" "this" {
+  count = var.deploy_cloudfront ? 1 : 0
+  
+  certificate_arn         = aws_acm_certificate.this[0].arn
+  validation_record_fqdns = [aws_route53_record.this[0].fqdn]
+}
