@@ -1,6 +1,5 @@
 locals {
-  url                 = "${var.panda_name}.${var.domain}"
-  # public_access_block = var.deploy_cloudfront ? true : false
+  url = "${var.panda_name}.${var.domain}"
 }
 
 resource "aws_s3_bucket" "this" {
@@ -52,10 +51,8 @@ resource "aws_s3_object" "index" {
 }
 
 resource "aws_s3_object" "error" {
-  count = var.error_html_path == null ? 0 : 1
-
   bucket       = aws_s3_bucket.this.id
   key          = "error.html"
-  source       = var.error_html_path
+  source       = var.error_html_path  # Path to the error document file
   content_type = "text/html"
 }

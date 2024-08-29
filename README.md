@@ -239,7 +239,27 @@ Now rerun our tests and they should pass
 cd $work_dir/module && terraform test
 ```
 
-Finally, let's check that project_b will now plan
+Let's now add a run block to test for the error page. Add the following to the end of the **module/tests/website.tftest.hcl** file
+```hcl
+run "create_error_page" {
+  variables {
+    panda_name      = run.setup_tests.random_prefix
+    domain          = "devopsplayground.org"
+    error_html_path = "./tests/html/error.html"
+  }
+
+  # Check index.html hash matches
+  assert {
+    condition     = aws_s3_object.error[0].etag == filemd5("./tests/html/error.html")
+    error_message = "Invalid hash for error.html"
+  }
+}
+```
+Run the tests again
+```bash
+cd $work_dir/module && terraform test
+```
+Now we have passing tests for our existing and new feature, let's do a plan for **project_b** to confirm there are no changes
 ```bash
 cd $work_dir/project_b && terraform plan
 ```
@@ -288,6 +308,13 @@ resource "aws_route53_record" "this" {
   type    = tolist(aws_acm_certificate.this[0].domain_validation_options)[0].resource_record_type
   records = [tolist(aws_acm_certificate.this[0].domain_validation_options)[0].resource_record_value]
   ttl     = 60
+}
+
+resource "aws_acm_certificate_validation" "this" {
+  count = var.deploy_cloudfront ? 1 : 0
+  
+  certificate_arn         = aws_acm_certificate.this[0].arn
+  validation_record_fqdns = [aws_route53_record.this[0].fqdn]
 }
 ```
 ## 3.1b ACM - Terraform Test
@@ -437,6 +464,10 @@ override_resource {
   target = aws_acm_certificate.this[0]
 }
 
+override_resource {
+  target = aws_acm_certificate_validation.this[0]
+}
+
 run "create_cloudfront" {
   command = plan
   variables {
@@ -472,11 +503,11 @@ Now let's deploy our module for project_a. Add the following argument to the **s
 deploy_cloudfront = true
 ````
 
-Now let's apply the changes
+Now let's apply the changes to **project_b**
 ```bash
-cd $work_dir/project_a && terraform init && terraform apply --auto-approve
+cd $work_dir/project_b && terraform init && terraform apply --auto-approve
 ```
-Finally, let's check that project_b plans with no changes
+Finally, let's check that project_a plans with no changes
 ```bash
 cd $work_dir/project_a && terraform init && terraform plan
 ```

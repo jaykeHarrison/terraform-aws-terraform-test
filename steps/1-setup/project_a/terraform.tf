@@ -15,6 +15,4 @@ provider "aws" {
      Purpose = "tf-test"
     }   
   }
-
-  region = "us-east-1"
 }

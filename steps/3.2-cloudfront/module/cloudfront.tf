@@ -26,7 +26,7 @@ resource "aws_cloudfront_distribution" "this" {
   }
 
   viewer_certificate {
-    acm_certificate_arn      = aws_acm_certificate.this[0].arn
+    acm_certificate_arn      = aws_acm_certificate_validation.this[0].certificate_arn
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.2_2018"
   }
@@ -51,6 +51,8 @@ resource "aws_cloudfront_distribution" "this" {
       }
     }
   }
+
+  depends_on = []
 }
 
 resource "aws_route53_record" "cloudfront_alias" {

@@ -49,3 +49,12 @@ resource "aws_s3_object" "index" {
   source       = var.index_html_path
   content_type = "text/html"
 }
+
+resource "aws_s3_object" "error" {
+  count = var.error_html_path == null ? 0 : 1
+  
+  bucket       = aws_s3_bucket.this.id
+  key          = "error.html"
+  source       = var.error_html_path
+  content_type = "text/html"
+}

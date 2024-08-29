@@ -1,5 +1,5 @@
 locals {
-  url = "${var.panda_name}-blog.${var.domain}"
+  url = "${var.panda_name}.${var.domain}"
 }
 
 resource "aws_s3_bucket" "this" {
